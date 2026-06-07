@@ -77,5 +77,6 @@ def main(start_year, end_year, start_month, end_month):
                 time.sleep(random.uniform(1.5, 3.5))
 
     combined_json = utils.json_t.weather_json_combined(weather_json_sources)
-    with open("weatherData_combined.json", "w", encoding="utf-8") as f:
-        f.write(combined_json)
+    # with open("weatherData_combined.json", "w", encoding="utf-8") as f:
+    #     f.write(combined_json)
+    return combined_json

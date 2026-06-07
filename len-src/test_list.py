@@ -1,71 +1,71 @@
 import requests
+import time
 
 url = "https://www.tianqihoubao.com/lishi/dujiangyan/month/202601.html"
 
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    # 模拟浏览器身份，避免被反爬拦截
 }
 
-resp = requests.get(url, headers=headers, timeout=10)
-# resp            → Response 对象
-# resp.status_code → 200 表示成功，404 没找到，500 服务器炸了
-# resp.text        → 页面 HTML 字符串
-# resp.encoding    → 编码（设置为 'utf-8' 避免中文乱码）
+def fetch_with_retry(url, headers, max_retries=3, timeout=30):
+    """带重试机制的请求函数"""
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"尝试第 {attempt} 次请求...")
+            resp = requests.get(url, headers=headers, timeout=timeout)
+            resp.encoding = "utf-8"
+            print(f"✅ 请求成功 (状态码: {resp.status_code})")
+            return resp
+        except requests.exceptions.Timeout:
+            print(f"⚠️  第 {attempt} 次请求超时，等待 2 秒后重试...")
+            if attempt < max_retries:
+                time.sleep(2)
+        except requests.exceptions.ConnectionError as e:
+            print(f"❌ 第 {attempt} 次请求连接失败: {e}")
+            if attempt < max_retries:
+                time.sleep(2)
+    
+    raise Exception(f"经过 {max_retries} 次重试后仍然失败")
 
-resp.encoding = "utf-8"
-# print(resp.text) # 输出页面 HTML 内容
+# 获取第一个月的数据
+resp = fetch_with_retry(url, headers)
 
 # 解析 HTML，提取天气数据
-# 1. 找到 const weatherData 位置
 idx = resp.text.find("const weatherData")
 print(f"weatherData 位置: {idx}")
-
 
 start = resp.text.find("[", idx)
 end = resp.text.find("];", start)
 
 weather_json = resp.text[start:end+2]
-# print(weather_json)
-
-# with open("len-src\\weatherData.json", "w", encoding="utf-8") as f:
-#     f.write(weather_json)
-
- 
-# 解析数据 转为 标准的 JSON 格式 (双引号，键名加引号)
 
 import re
-# 为 date ， weatherDay ， weatherNight ， minTemp ， maxTemp ， windDay ， windNight 加上双引号
+
 def add_quotes(match):
     return f'"{match.group(1)}":'
 pattern = r'(\w+):'
 weather_json = re.sub(pattern, add_quotes, weather_json)
-# 去除数据末尾的 ";"
 weather_json = weather_json.rstrip(";")
 
-print(weather_json)
+print(f"✅ 1月数据解析完成")
 
-import time
-time.sleep(1)
-
+# 获取第二个月的数据
 url2 = "https://www.tianqihoubao.com/lishi/dujiangyan/month/202602.html"
-resp2 = requests.get(url2, headers=headers, timeout=10)
-resp2.encoding = "utf-8"
+resp2 = fetch_with_retry(url2, headers)
+
 idx2 = resp2.text.find("const weatherData")
-print(f"weatherData 位置: {idx2}")
 start2 = resp2.text.find("[", idx2)
 end2 = resp2.text.find("];", start2)
 weather_json2 = resp2.text[start2:end2+2]
 weather_json2 = re.sub(pattern, add_quotes, weather_json2)
 weather_json2 = weather_json2.rstrip(";")
-print(weather_json2)
 
-# 和并 两个 JSON 数据
+print(f"✅ 2月数据解析完成")
+
+# 合并两个 JSON 数据
 weather_json_combined = weather_json[:-1] + "," + weather_json2[1:]
-print(weather_json_combined)
-# with open("len-src\\weatherData_combined.json", "w", encoding="utf-8") as f:
-#     f.write(weather_json_combined)
+print(f"✅ 数据合并完成")
 
 import pymysql
 
@@ -75,13 +75,12 @@ try:
         host='localhost',
         port=3306,
         user='root',
-        password='test123456',      # ← 替换为你实际的密码
+        password='test123456',
         database='test_db',
         charset='utf8mb4'
     )
     print("---\n连接成功\n---\n")
     
-    # 测试查询
     with conn.cursor() as cursor:
         cursor.execute("SELECT VERSION()")
         print(f"MySQL 版本: {cursor.fetchone()[0]}")
@@ -89,11 +88,10 @@ try:
     import json
     from datetime import datetime
 
-    # ─── 1. 字符串 → Python 列表 ───
-    rows = json.loads(weather_json_combined)  # list[dict], 已含两个月的 59 条数据
+    rows = json.loads(weather_json_combined)
     print(f"解析到 {len(rows)} 条数据")
 
-    # ─── 2. 建表（只执行一次） ───
+# 创建表结构
     cursor = conn.cursor()
     cursor.execute("""CREATE TABLE IF NOT EXISTS weather_daily (
         id            INT AUTO_INCREMENT PRIMARY KEY,
@@ -108,17 +106,15 @@ try:
         crawl_time    DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""")
     conn.commit()
-
-    # ─── 3. 转换 + 批量插入 ───
+# 入库数据
     now = datetime.now()
     params = []
     for item in rows:
-        # 日期: "2026年01月01日" → "2026-01-01"
         d = item['date']
-        date_str = f"{d[:4]}-{d[5:7]}-{d[8:10]}"    # 切片比正则快
+        date_str = f"{d[:4]}-{d[5:7]}-{d[8:10]}"
         params.append((
             date_str,
-            date_str.replace("-", "")[:6],            # ym: "202601"
+            date_str.replace("-", "")[:6],
             item['weatherDay'], item['weatherNight'],
             int(item['maxTemp']), int(item['minTemp']),
             item['windDay'], item['windNight'],

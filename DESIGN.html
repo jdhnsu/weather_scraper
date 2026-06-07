@@ -1,0 +1,532 @@
+<!DOCTYPE html><html lang="zh-CN" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>都江堰年度天气数据爬取与可视化系统</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-variant": "#e2e2e6",
+                    "secondary-fixed-dim": "#99cbff",
+                    "secondary-fixed": "#cfe5ff",
+                    "on-secondary-fixed": "#001d34",
+                    "surface-container-low": "#f3f3f7",
+                    "inverse-primary": "#9acbfb",
+                    "secondary-container": "#94c8ff",
+                    "surface": "#f9f9fd",
+                    "inverse-on-surface": "#f0f0f4",
+                    "tertiary": "#764f04",
+                    "on-primary-container": "#ecf4ff",
+                    "on-tertiary-fixed": "#291800",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-highest": "#e2e2e6",
+                    "surface-bright": "#f9f9fd",
+                    "on-surface-variant": "#41474e",
+                    "surface-tint": "#2d628c",
+                    "primary-fixed": "#cee5ff",
+                    "surface-container-high": "#e7e8ec",
+                    "outline": "#72787f",
+                    "surface-container": "#edeef1",
+                    "inverse-surface": "#2e3134",
+                    "outline-variant": "#c1c7cf",
+                    "primary-container": "#40739e",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed": "#001d32",
+                    "tertiary-fixed-dim": "#f3bd6d",
+                    "on-primary": "#ffffff",
+                    "secondary": "#286292",
+                    "primary-fixed-dim": "#9acbfb",
+                    "on-primary-fixed-variant": "#0a4a73",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#624000",
+                    "on-secondary-container": "#135483",
+                    "on-secondary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-secondary-fixed-variant": "#004a78",
+                    "tertiary-fixed": "#ffddb1",
+                    "surface-dim": "#d9dade",
+                    "error-container": "#ffdad6",
+                    "primary": "#235a84",
+                    "background": "#f9f9fd",
+                    "on-surface": "#191c1f",
+                    "on-tertiary-container": "#fff2e4",
+                    "error": "#ba1a1a",
+                    "on-background": "#191c1f",
+                    "tertiary-container": "#92671f"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "16px",
+                    "container-padding": "24px",
+                    "unit": "4px",
+                    "group-margin": "16px",
+                    "control-gap": "12px"
+            },
+            "fontFamily": {
+                    "body-base": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "data-mono": ["JetBrains Mono"],
+                    "control-label": ["Inter"],
+                    "group-label": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "table-cell": ["Inter"]
+            },
+            "fontSize": {
+                    "body-base": ["14px", {"lineHeight": "22px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "data-mono": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "control-label": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                    "group-label": ["14px", {"lineHeight": "20px", "fontWeight": "700"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "table-cell": ["13px", {"lineHeight": "18px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .q-group-box {
+            border: 1px solid #dcdde1;
+            padding: 16px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .q-group-label {
+            position: absolute;
+            top: -10px;
+            left: 12px;
+            background: #f9f9fd;
+            padding: 0 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c7cf;
+            border-radius: 4px;
+        }
+        .active-tab {
+            border-bottom: 2px solid #235a84;
+            color: #235a84;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-base selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline shadow-sm docked full-width top-0 flex justify-between items-center w-full px-container-padding h-16 z-40 fixed">
+<div class="flex items-center gap-4">
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed">WeatherScrape Pro</span>
+<span class="h-6 w-px bg-outline-variant"></span>
+<span class="font-headline-md text-headline-md text-on-surface-variant opacity-70">都江堰气象站</span>
+</div>
+<div class="hidden md:flex items-center gap-6">
+<div class="flex items-center gap-2 text-on-surface-variant hover:bg-surface-container-high transition-colors p-2 rounded cursor-pointer active:scale-95 duration-150"></div>
+<div class="flex items-center gap-2 text-on-surface-variant hover:bg-surface-container-high transition-colors p-2 rounded cursor-pointer active:scale-95 duration-150"></div>
+<div class="flex items-center gap-2 text-on-surface-variant hover:bg-surface-container-high transition-colors p-2 rounded cursor-pointer active:scale-95 duration-150"></div>
+</div>
+</header>
+<div class="flex pt-16 min-h-screen">
+<!-- SideNavBar -->
+
+<!-- Main Content -->
+<main class="flex-1 p-container-padding pb-16">
+<div class="max-w-6xl mx-auto space-y-6">
+<!-- Dashboard Header -->
+<div class="text-center mb-8">
+<h1 class="font-display-lg text-display-lg text-primary tracking-tight">都江堰年度天气数据爬取与可视化系统</h1>
+</div>
+<!-- Control Panel (QGroupBox) -->
+<section class="q-group-box bg-surface rounded shadow-sm border border-outline-variant">
+<span class="q-group-label font-group-label text-primary-container text-group-label">控制面板</span>
+<div class="flex flex-col md:flex-row md:items-center gap-control-gap">
+<div class="flex flex-col lg:flex-row items-start lg:items-center gap-6 flex-1">
+  <!-- Start Time -->
+  <div class="flex items-center gap-3">
+    <label class="font-control-label text-control-label text-on-surface-variant whitespace-nowrap">起始时间:</label>
+    <div class="flex gap-2">
+      <select class="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-body-base focus:ring-2 focus:ring-primary-container outline-none transition-all">
+        <option>2023</option>
+        <option selected="">2024</option>
+        <option>2025</option>
+      </select>
+      <select class="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-body-base focus:ring-2 focus:ring-primary-container outline-none transition-all">
+        <option>一月</option>
+        <option>二月</option>
+        <option>三月</option>
+        <option>四月</option>
+        <option selected="">五月</option>
+        <option>六月</option>
+        <option>七月</option>
+        <option>八月</option>
+        <option>九月</option>
+        <option>十月</option>
+        <option>十一月</option>
+        <option>十二月</option>
+      </select>
+    </div>
+  </div>
+  <!-- End Time -->
+  <div class="flex items-center gap-3">
+    <label class="font-control-label text-control-label text-on-surface-variant whitespace-nowrap">结束时间:</label>
+    <div class="flex gap-2">
+      <select class="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-body-base focus:ring-2 focus:ring-primary-container outline-none transition-all">
+        <option>2023</option>
+        <option selected="">2024</option>
+        <option>2025</option>
+      </select>
+      <select class="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-body-base focus:ring-2 focus:ring-primary-container outline-none transition-all">
+        <option>一月</option>
+        <option>二月</option>
+        <option>三月</option>
+        <option>四月</option>
+        <option selected="">五月</option>
+        <option>六月</option>
+        <option>七月</option>
+        <option>八月</option>
+        <option>九月</option>
+        <option>十月</option>
+        <option>十一月</option>
+        <option>十二月</option>
+      </select>
+    </div>
+  </div>
+</div>
+<div class="flex gap-4">
+<button class="bg-primary text-white px-6 py-2 rounded-lg font-bold hover:bg-primary-container transition-all active:scale-95 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">cloud_download</span>
+                                一键爬取
+                            </button>
+<button class="border border-primary text-primary px-6 py-2 rounded-lg font-bold hover:bg-surface-container-high transition-all active:scale-95 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">analytics</span>
+                                开始分析
+                            </button>
+</div>
+</div>
+<!-- QProgressBar -->
+<div class="mt-6">
+<div class="flex justify-between items-center mb-2">
+<span class="text-control-label font-control-label text-on-surface-variant">爬取进度</span>
+<span class="text-data-mono font-data-mono text-primary font-bold">12/12 (100%)</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-3 overflow-hidden shadow-inner">
+<div class="bg-primary h-full transition-all duration-1000 ease-out" style="width: 100%"></div>
+</div>
+</div>
+</section>
+<!-- Main Content (QTabWidget) -->
+<section class="bg-white rounded-xl shadow-sm border border-outline-variant overflow-hidden flex flex-col" style="min-height: 750px;">
+<!-- Tabs Header -->
+<div class="flex border-b border-outline-variant bg-surface-container-low">
+<button class="tab-btn px-6 py-4 font-group-label text-group-label flex items-center gap-2 transition-all hover:bg-white/50 text-on-surface-variant" id="btn-tab-weather" onclick="switchTab('tab-weather')">
+<span class="material-symbols-outlined text-[20px]">calendar_month</span>
+                            天气数据表
+                        </button>
+<button class="tab-btn px-6 py-4 font-group-label text-group-label flex items-center gap-2 transition-all hover:bg-white/50 active-tab" id="btn-tab-stats" onclick="switchTab('tab-stats')">
+<span class="material-symbols-outlined text-[20px]">bar_chart</span>
+                            月度统计
+                        </button>
+
+<button class="tab-btn px-6 py-4 font-group-label text-group-label flex items-center gap-2 transition-all hover:bg-white/50 text-on-surface-variant" id="btn-tab-logs" onclick="switchTab('tab-logs')">
+<span class="material-symbols-outlined text-[20px]">list_alt</span>
+                            运行日志
+                        </button>
+</div>
+<!-- Tab Panes -->
+<div class="flex-1 overflow-hidden relative">
+<!-- Tab 1: Weather Data -->
+<div class="tab-pane absolute inset-0 p-4 overflow-auto custom-scrollbar hidden" id="tab-weather"><div class="flex flex-wrap items-center gap-6 mb-6 p-4 bg-surface-container-low rounded-lg border border-outline-variant">
+  <div class="flex items-center gap-3">
+    <label class="font-control-label text-control-label text-on-surface-variant">年份筛选:</label>
+    <select class="bg-white border border-outline-variant rounded-lg px-3 py-1.5 text-body-base focus:ring-2 focus:ring-primary-container outline-none transition-all">
+      <option>2023</option>
+      <option selected="">2024</option>
+      <option>2025</option>
+    </select>
+  </div>
+  <div class="flex flex-1 items-center gap-3">
+    <label class="font-control-label text-control-label text-on-surface-variant">月份筛选:</label>
+    <div class="flex flex-wrap gap-x-4 gap-y-2">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">全选</span>
+      </label>
+      <div class="w-px h-4 bg-outline-variant mx-1"></div>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">1月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">2月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">3月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">4月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">5月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">6月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">7月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">8月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">9月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">10月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">11月</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked="" class="rounded border-outline-variant text-primary focus:ring-primary-container">
+        <span class="text-body-base">12月</span>
+      </label>
+    </div>
+  </div>
+</div>
+<table class="w-full border-collapse">
+<thead class="sticky top-0 bg-white z-10 shadow-sm">
+<tr class="bg-surface-container-high">
+<th class="border border-outline-variant p-3 text-left font-group-label text-group-label">日期</th>
+<th class="border border-outline-variant p-3 text-left font-group-label text-group-label">白天天气</th>
+<th class="border border-outline-variant p-3 text-left font-group-label text-group-label">夜间天气</th>
+<th class="border border-outline-variant p-3 text-left font-group-label text-group-label text-primary">最高温(℃)</th>
+<th class="border border-outline-variant p-3 text-left font-group-label text-group-label text-secondary">最低温(℃)</th>
+<th class="border border-outline-variant p-3 text-left font-group-label text-group-label">白天风力</th>
+<th class="border border-outline-variant p-3 text-left font-group-label text-group-label">夜间风力</th><th class="border border-outline-variant p-3 text-left font-group-label text-group-label">穿衣建议</th>
+</tr>
+</thead>
+<tbody class="text-table-cell font-table-cell">
+<tr class="hover:bg-primary-fixed transition-colors">
+<td class="border border-outline-variant p-3">2024-05-01</td>
+<td class="border border-outline-variant p-3"><span class="flex items-center gap-2"><span class="material-symbols-outlined text-amber-500">light_mode</span>晴</span></td>
+<td class="border border-outline-variant p-3">晴</td>
+<td class="border border-outline-variant p-3 font-bold text-primary">26</td>
+<td class="border border-outline-variant p-3 font-bold text-secondary">15</td>
+<td class="border border-outline-variant p-3">微风</td>
+<td class="border border-outline-variant p-3">微风</td><td class="border border-outline-variant p-3">建议穿短袖或薄长袖，带太阳镜。</td>
+</tr>
+<tr class="bg-surface-container-low hover:bg-primary-fixed transition-colors">
+<td class="border border-outline-variant p-3">2024-05-02</td>
+<td class="border border-outline-variant p-3"><span class="flex items-center gap-2"><span class="material-symbols-outlined text-slate-400">cloud</span>多云</span></td>
+<td class="border border-outline-variant p-3">阴</td>
+<td class="border border-outline-variant p-3 font-bold text-primary">24</td>
+<td class="border border-outline-variant p-3 font-bold text-secondary">14</td>
+<td class="border border-outline-variant p-3">北风3级</td>
+<td class="border border-outline-variant p-3">微风</td><td class="border border-outline-variant p-3">建议穿薄长袖加轻便外套。</td>
+</tr>
+<tr class="hover:bg-primary-fixed transition-colors">
+<td class="border border-outline-variant p-3">2024-05-03</td>
+<td class="border border-outline-variant p-3"><span class="flex items-center gap-2"><span class="material-symbols-outlined text-blue-400">rainy</span>阵雨</span></td>
+<td class="border border-outline-variant p-3">小雨</td>
+<td class="border border-outline-variant p-3 font-bold text-primary">21</td>
+<td class="border border-outline-variant p-3 font-bold text-secondary">12</td>
+<td class="border border-outline-variant p-3">微风</td>
+<td class="border border-outline-variant p-3">微风</td><td class="border border-outline-variant p-3">建议穿防水外套，随身携带雨具。</td>
+</tr>
+<tr class="bg-surface-container-low hover:bg-primary-fixed transition-colors">
+<td class="border border-outline-variant p-3">2024-05-04</td>
+<td class="border border-outline-variant p-3"><span class="flex items-center gap-2"><span class="material-symbols-outlined text-slate-400">cloud</span>阴</span></td>
+<td class="border border-outline-variant p-3">多云</td>
+<td class="border border-outline-variant p-3 font-bold text-primary">23</td>
+<td class="border border-outline-variant p-3 font-bold text-secondary">13</td>
+<td class="border border-outline-variant p-3">微风</td>
+<td class="border border-outline-variant p-3">微风</td><td class="border border-outline-variant p-3">建议穿长袖卫衣或针织衫。</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Tab 2: Monthly Stats -->
+<div class="tab-pane absolute inset-0 p-4" id="tab-stats"><div class="flex flex-wrap items-center gap-6 mb-6 p-4 bg-surface-container-low rounded-lg border border-outline-variant">
+  <div class="flex items-center gap-3">
+    <label class="font-control-label text-control-label text-on-surface-variant whitespace-nowrap">年份筛选:</label>
+    <select class="bg-white border border-outline-variant rounded-lg px-3 py-1.5 text-body-base focus:ring-2 focus:ring-primary-container outline-none transition-all">
+      <option>2023</option>
+      <option selected="">2024</option>
+      <option>2025</option>
+    </select>
+  </div>
+  <div class="flex items-center gap-3">
+    <label class="font-control-label text-control-label text-on-surface-variant whitespace-nowrap">月份筛选:</label>
+    <select class="bg-white border border-outline-variant rounded-lg px-3 py-1.5 text-body-base focus:ring-2 focus:ring-primary-container outline-none transition-all">
+      <option>一月</option>
+      <option>二月</option>
+      <option>三月</option>
+      <option>四月</option>
+      <option selected="">五月</option>
+      <option>六月</option>
+      <option>七月</option>
+      <option>八月</option>
+      <option>九月</option>
+      <option>十月</option>
+      <option>十一月</option>
+      <option>十二月</option>
+    </select>
+  </div>
+  <div class="flex-1"></div>
+  <button class="bg-primary-container text-white px-6 py-1.5 rounded-lg font-bold hover:bg-primary transition-all active:scale-95 flex items-center gap-2">
+    <span class="material-symbols-outlined text-[18px]">check_circle</span>
+    确认分析
+  </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div>
+<h3 class="font-group-label text-group-label mb-4 text-primary">概率统计 (Probabilities)</h3>
+<table class="w-full border-collapse rounded-lg overflow-hidden border border-outline-variant">
+<tbody>
+<tr class="bg-surface-container-low">
+<td class="p-4 border-b border-outline-variant font-medium">晴天率 (Sunny)</td>
+<td class="p-4 border-b border-outline-variant text-right font-data-mono">42.5%</td>
+</tr>
+<tr>
+<td class="p-4 border-b border-outline-variant font-medium">雨天率 (Rainy)</td>
+<td class="p-4 border-b border-outline-variant text-right font-data-mono">18.2%</td>
+</tr>
+<tr class="bg-surface-container-low">
+<td class="p-4 border-b border-outline-variant font-medium">多云率 (Cloudy)</td>
+<td class="p-4 border-b border-outline-variant text-right font-data-mono">39.3%</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div>
+<h3 class="font-group-label text-group-label mb-4 text-primary">气温极值 (Temp Extremes)</h3>
+<table class="w-full border-collapse rounded-lg overflow-hidden border border-outline-variant">
+<tbody>
+<tr class="bg-surface-container-low">
+<td class="p-4 border-b border-outline-variant font-medium">平均最高温</td>
+<td class="p-4 border-b border-outline-variant text-right font-data-mono">25.4℃</td>
+</tr>
+<tr>
+<td class="p-4 border-b border-outline-variant font-medium">平均最低温</td>
+<td class="p-4 border-b border-outline-variant text-right font-data-mono">14.8℃</td>
+</tr>
+<tr class="bg-surface-container-low">
+<td class="p-4 border-b border-outline-variant font-medium">总记录天数</td>
+<td class="p-4 border-b border-outline-variant text-right font-data-mono">31天</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="mt-8 h-48 bg-surface-container rounded-lg border border-dashed border-outline-variant flex items-center justify-center">
+<span class="text-on-surface-variant italic">统计图表可视化占位符</span>
+</div>
+</div>
+<!-- Tab 3: Clothing Advice -->
+
+<!-- Tab 4: Run Logs -->
+<div class="tab-pane absolute inset-0 p-4 hidden" id="tab-logs">
+<div class="h-full bg-[#1e1e1e] rounded-lg p-4 font-data-mono text-data-mono overflow-auto custom-scrollbar shadow-inner">
+<div class="flex gap-4 py-1">
+<span class="text-slate-500">[16:20:01]</span>
+<span class="text-green-400">正在初始化序列...</span>
+</div>
+<div class="flex gap-4 py-1">
+<span class="text-slate-500">[16:20:02]</span>
+<span class="text-white">连接到爬取目标：Dujiangyan_Meteo_Central</span>
+</div>
+<div class="flex gap-4 py-1">
+<span class="text-slate-500">[16:20:05]</span>
+<span class="text-yellow-400">警告: 检测到网络延迟。正在重试...</span>
+</div>
+<div class="flex gap-4 py-1">
+<span class="text-slate-500">[16:20:08]</span>
+<span class="text-blue-400">信息: 连接已建立。采集引擎 v4.2.1 运行中。</span>
+</div>
+<div class="flex gap-4 py-1">
+<span class="text-slate-500">[16:20:10]</span>
+<span class="text-white">正在获取 2024年5月 历史数据...</span>
+</div>
+<div class="flex gap-4 py-1">
+<span class="text-slate-500">[16:20:45]</span>
+<span class="text-green-400">数据获取成功 (发现 31 个节点)。</span>
+</div>
+<div class="flex gap-4 py-1">
+<span class="text-slate-500">[16:21:02]</span>
+<span class="text-white">正在处理统计趋势与异常值...</span>
+</div>
+<div class="flex gap-4 py-1">
+<span class="text-slate-500">[16:21:05]</span>
+<span class="text-green-400 font-bold">分析完成。系统就绪。</span>
+</div>
+<div class="flex gap-4 py-1 opacity-50">
+<span class="text-slate-500">[16:21:06]</span>
+<span class="text-white">_</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- Footer / Status Bar -->
+
+<script>
+        function switchTab(tabId) {
+            // Hide all panes
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.add('hidden');
+            });
+            
+            // Show selected pane
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // Update button styles
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active-tab');
+                btn.classList.add('text-on-surface-variant');
+            });
+            
+            // Set current active
+            const activeBtnId = 'btn-' + tabId;
+            document.getElementById(activeBtnId).classList.add('active-tab');
+            document.getElementById(activeBtnId).classList.remove('text-on-surface-variant');
+        }
+
+        // Initialize view
+        document.addEventListener('DOMContentLoaded', () => {
+            switchTab('tab-weather');
+        });
+    </script>
+
+
+</body></html>
