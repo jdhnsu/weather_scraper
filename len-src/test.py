@@ -1,6 +1,6 @@
 import requests
 
-url = "https://www.tianqihoubao.com/lishi/dujiangyan/month/202601.html"
+url = "https://www.tianqihoubao.com/lishi/dujiangyan/month/202602.html"
 
 
 headers = {
@@ -26,14 +26,14 @@ print(f"weatherData 位置: {idx}")
 start = resp.text.find("[", idx)
 end = resp.text.find("];", start)
 
-weather_json = resp.text[start:end+2]
-# print(weather_json)
+weather_json = resp.text[start:end+1]
+print(weather_json)
 
-# with open("len-src\\weatherData.json", "w", encoding="utf-8") as f:
-#     f.write(weather_json)
+# # with open("len-src\\weatherData.json", "w", encoding="utf-8") as f:
+# #     f.write(weather_json)
 
  
-# 解析数据 转为 标准的 JSON 格式 (双引号，键名加引号)
+# # 解析数据 转为 标准的 JSON 格式 (双引号，键名加引号)
 
 import re
 # 为 date ， weatherDay ， weatherNight ， minTemp ， maxTemp ， windDay ， windNight 加上双引号
