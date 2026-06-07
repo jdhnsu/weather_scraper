@@ -18,7 +18,7 @@ pip install -r requirements.txt
 ### 2) 启动项目
 
 ```bash
-python /tmp/workspace/jdhnsu/weather_scraper/src/main.py
+python src/main.py
 ```
 
 > 说明：运行前请确保本地 MySQL 已可用，并按项目中的数据库配置完成连接信息设置。
