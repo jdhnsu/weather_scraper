@@ -1,11 +1,6 @@
-# 都江堰年度天气数据爬取与可视化系统
+# 都江堰天气数据爬取与可视化系统
 
-这是我的课程作业项目：基于 Python + PyQt5 的天气数据爬取与可视化工具。  
-你可以选择时间范围，一键抓取都江堰天气数据，并在界面中查看数据表、月度统计和运行日志。
-
-## 软件截图
-
-![项目界面截图](https://github.com/user-attachments/assets/5eff277f-7689-40e8-a083-e0bc976116bb)
+基于 **Python + PyQt5 + MySQL** 的课程项目：按时间范围爬取都江堰历史天气数据，并在图形界面中查看数据表、月度统计和日志。
 
 ## 快速开始
 
@@ -15,15 +10,42 @@
 pip install -r requirements.txt
 ```
 
-### 2) 启动项目
+### 2) MySQL 基础配置（先建库）
+
+项目默认连接配置在 `src/db.py`：
+
+- host: `localhost`
+- port: `3306`
+- user: `root`
+- password: `test123456`
+- database: `test_db`
+
+请先在 MySQL 中创建数据库：
+
+```sql
+CREATE DATABASE test_db DEFAULT CHARACTER SET utf8mb4;
+```
+
+如你的本地账号或库名不同，请修改 `connect_db()` 中对应字段。
+
+### 3) 启动程序
 
 ```bash
 python src/main.py
 ```
 
-> 说明：运行前请确保本地 MySQL 已可用，并按项目中的数据库配置完成连接信息设置。
+> 首次运行会自动创建 `weather_daily` 表。
+
+## 简单架构说明
+
+- **GUI 层（`src/qt_src/`）**：负责界面展示、参数输入、进度与日志展示。
+- **爬虫层（`src/WeatherScraper.py`）**：按年月抓取网页并解析天气 JSON 数据。
+- **数据层（`src/db.py`）**：负责 MySQL 连接、建表、入库与查询统计。
+- **工具层（`src/utils/`）**：提供 JSON 组装与文本处理辅助函数。
+
+数据流：`用户操作 -> GUI 线程调度 -> 爬虫抓取/解析 -> MySQL 存储 -> GUI 查询展示`。
 
 ## 目录说明
 
-- `src/`：主项目代码（GUI、爬虫逻辑、数据库交互等）
-- `len-src/`：原理探索脚本（用于实验和原理验证）
+- `src/`：主项目代码
+- `len-src/`：实验与原理验证脚本
